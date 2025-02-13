@@ -9,6 +9,7 @@
 #
 
 import argparse
+import json
 import signal
 import sys
 
@@ -86,6 +87,7 @@ def argument_parser():
     p_sources.add_argument(
         '--udp', action='store_true', help='Use UDP input')
     p_sources.add_argument('--kiss_in', help='KISS input file')
+    p_sources.add_argument('--sigmf_in', help='SigMF input (metadata file)')
 
     p_input.add_argument('--samp_rate', type=float, help='Sample rate (Hz)')
     p_input.add_argument(
@@ -133,9 +135,10 @@ def argument_parser():
 def check_options(options, parser):
     if (options.kiss_in is None
             and options.wavfile is None
-            and options.samp_rate is None):
+            and options.samp_rate is None
+            and options.sigmf_in is None):
         print('Need to specify --samp_rate unless --wavfile '
-              'or --kiss_in is used',
+              'or --kiss_in or --sigmf_in is used',
               file=sys.stderr)
         parser.print_usage(file=sys.stderr)
         sys.exit(1)
@@ -227,6 +230,8 @@ class gr_satellites_top_block(gr.top_block):
             return self.setup_udp_input()
         elif self.options.kiss_in is not None:
             return self.setup_kiss_input()
+        elif self.options.sigmf_in is not None:
+            return self.setup_sigmf_input()
         else:
             raise Exception('No input source set for flowgraph')
 
@@ -292,6 +297,61 @@ class gr_satellites_top_block(gr.top_block):
     def setup_kiss_input(self):
         self.input = datasources.kiss_file_source(self.options.kiss_in)
 
+    def setup_sigmf_input(self):
+        if self.options.sigmf_in.endswith('sigmf'):
+            print(
+                "Failed to load SigMF archive (archives are not yet supported). "
+                "Consider extracting a recording and pass the corresponding SigMF metadata file.",
+                file=sys.stderr)
+            sys.exit(1)
+        if not self.options.sigmf_in.endswith('sigmf-meta'):
+            print("SIGMF_IN has invalid file extension, expected '.sigmf-meta'", file=sys.stderr)
+            sys.exit(1)
+
+        try:
+            with open(self.options.sigmf_in, encoding='utf-8') as f:
+                try:
+                    meta = json.load(f)
+                except json.decoder.JSONDecodeError as json_err:
+                    print("Failed to parse SigMF Metadata, JSON decoder error:", file=sys.stderr)
+                    print(json_err)
+                    sys.exit(1)
+        except FileNotFoundError as fno_err:
+            print('Could not open SigMF Metadata file:')
+            print(fno_err)
+            exit(1)
+
+        if 'global' not in meta:
+            print("SigMF metadata file is malformed: Missing 'global' object", file=sys.stderr)
+            sys.exit(1)
+
+        fields_required = ['core:datatype', 'core:sample_rate']
+        for field in fields_required:
+            if field not in meta['global']:
+                print(f"SigMF metadata file is malformed: Missing field '{field}'", file=sys.stderr)
+                sys.exit(1)
+
+        datatype = meta['global']['core:datatype']
+        dataset_filename = self.options.sigmf_in[:-11] + '.sigmf-data'
+        sample_rate = meta['global']['core:sample_rate']
+
+        datatypes_supported = ['ci16_le']
+
+        if datatype == 'ci16_le':
+            self.options.iq = True
+            self.options.rawint16 = dataset_filename
+            self.options.samp_rate = sample_rate
+            self.setup_rawint16_input()
+        else:
+            print(f"Unsupported SigMF Dataset format of stored samples ('{datatype}'). Supported datatypes are: {', '.join(datatypes_supported)}.", file=sys.stderr)
+            sys.exit(1)
+
+        if 'captures' in meta and 'core:datetime' in meta['captures']:
+            self.options.start_time = meta['captures']['core_datetime']
+
+        if 'capture' in meta and 'core:sample_start' in meta['captures'] and meta['captures']['core:sample_start'] != 0:
+            print('SigMF Capture Segments with non-zero sample start index are not supported (yet).', file=sys.stderr)
+            sys.exit(1)
 
 def main():
     parser = argument_parser()
