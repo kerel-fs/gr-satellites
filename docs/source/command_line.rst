@@ -20,7 +20,7 @@ basic information about the arguments it allows.
    usage: gr_satellites satellite [-h] [--version] [--list_satellites]
                                [--ignore_unknown_args]
                                [--satcfg]
-                               (--wavfile WAVFILE | --rawfile RAWFILE | --rawint16 RAWINT16 | --audio [DEVICE] | --udp | --kiss_in KISS_IN)
+                               (--wavfile WAVFILE | --rawfile RAWFILE | --rawint16 RAWINT16 | --audio [DEVICE] | --udp | --kiss_in KISS_IN | --sigmf_in SIGMF_IN)
                                [--samp_rate SAMP_RATE]
                                [--udp_port UDP_PORT] [--iq] [--udp_raw]
                                [--input_gain INPUT_GAIN]
@@ -193,6 +193,9 @@ the input source by using exactly one of the following options:
   This can be useful to view the telemetry stored in files previously decoded
   with gr-satellites or other software.
 
+* ``--sigmf_in`` can be used to read a SigMF Recording. The file is interpreted to be the
+  SigMF Metadata file. The corresponding SigMF Dataset file is automatically found.
+
 Getting help
 """"""""""""
 
@@ -207,7 +210,7 @@ For example, this shows all the options allowed by the FUNcube-1 decoder:
 
    $ gr_satellites FUNcube-1 --help
    usage: gr_satellites satellite [-h] [--version] [--list_satellites]
-				  (--wavfile WAVFILE | --rawfile RAWFILE | --rawint16 RAWINT16 | --audio [DEVICE] | --udp | --kiss_in KISS_IN)
+				  (--wavfile WAVFILE | --rawfile RAWFILE | --rawint16 RAWINT16 | --audio [DEVICE] | --udp | --kiss_in KISS_IN | --sigmf_in SIGMF_IN)
 				  [--samp_rate SAMP_RATE]
 				  [--udp_port UDP_PORT] [--iq]
 				  [--input_gain INPUT_GAIN]
@@ -242,6 +245,7 @@ For example, this shows all the options allowed by the FUNcube-1 decoder:
      --audio [DEVICE]      Soundcard device input
      --udp                 Use UDP input
      --kiss_in KISS_IN     KISS input file
+     --sigmf_in SIGMF_IN   SigMF input (metadata file)
      --samp_rate SAMP_RATE
 			   Sample rate (Hz)
      --udp_port UDP_PORT   UDP input listen port [default='7355']
