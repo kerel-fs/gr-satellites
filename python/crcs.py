@@ -8,7 +8,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-from . import crc_check
+from satellites.utils.gnuradio_compat import gnuradio_version_older_than
+
+if gnuradio_version_older_than(3, 10, 2):
+    from . import crc_check
+else:
+    from gnuradio.digital import crc_check
 
 
 def crc16_arc(swap_endianness=True, discard_crc=True):
