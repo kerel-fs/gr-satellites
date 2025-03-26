@@ -8,6 +8,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+from typing import Optional
+
 import itertools
 
 from gnuradio import gr
@@ -20,7 +22,7 @@ from .mobitex_fec import decode, encode, Status
 
 
 def decode_control(control0: int, control1: int, fec: int) -> \
-        tuple[list[int], int] | None:
+        Optional[tuple[list[int], int]]:
     """
     Process control bytes and FEC byte, correcting errors if possible.
     Returns error-corrected bytes and error count, or None if uncorrectable.
@@ -68,7 +70,7 @@ def decode_unknown_callsign(
     callsign: bytes,
     crc: bytes,
     max_bit_flips: int,
-) -> tuple[bytes, bytes, int] | None:
+) -> Optional[tuple[bytes, bytes, int]]:
     """Error-corrects callsign+crc by flipping bits until CRC matches or
     maximum number of bit-flips is exceeded.
 
@@ -191,7 +193,7 @@ class mobitex_to_datablocks(gr.basic_block):
     def __init__(
         self,
         variant: str,
-        callsign: str | None = None,
+        callsign: Optional[str] = None,
         drop_invalid_control: bool = False,
         callsign_threshold: int = 2,
         verbose=False,
