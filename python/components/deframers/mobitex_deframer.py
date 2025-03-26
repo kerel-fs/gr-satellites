@@ -27,7 +27,12 @@ from ...crcs import crc16_ccitt_x25
 
 
 # accept <= 2 bit errors in 6 bytes payload, 1x16-bit CRC)
+# when checking for a valid CRC
 DEFAULT_CALLSIGN_THRESHOLD = 2
+
+# accept <=12 bit errors in 6 + 2 bytes,
+# when checking against a known callsign + CRC
+DEFAULT_CALLSIGN_THRESHOLD_RELAXED = 12
 
 
 class mobitex_deframer(gr.hier_block2, options_block):
@@ -90,11 +95,11 @@ class mobitex_deframer(gr.hier_block2, options_block):
         self.syncword_threshold = syncword_threshold
 
         if callsign_threshold is None:
-            if callsign is not None and self.options.callsign_threshold == \
-                    DEFAULT_CALLSIGN_THRESHOLD:
-                callsign_threshold = 12
-            else:
-                callsign_threshold = self.options.callsign_threshold
+            callsign_threshold = self.options.callsign_threshold
+        if callsign_threshold is None:
+            callsign_threshold = (DEFAULT_CALLSIGN_THRESHOLD_RELAXED
+                                  if callsign is not None
+                                  else DEFAULT_CALLSIGN_THRESHOLD)
         self.callsign_threshold = callsign_threshold
 
         self.invert = blocks.multiply_const_ff(-1, 1)
@@ -194,18 +199,17 @@ class mobitex_deframer(gr.hier_block2, options_block):
         # accept <= 3 bit errors in 2 bytes payload, 2x 4-bit FEC)
         default_sync_threshold = 3
 
-        # accept <= 2 bit errors in 6 bytes payload, 1x16-bit CRC)
-        default_callsign_threshold = DEFAULT_CALLSIGN_THRESHOLD
-
         parser.add_argument(
             '--syncword_threshold', type=int,
             default=default_sync_threshold,
             help='Syncword bit errors [default=%(default)r]')
         parser.add_argument(
             '--callsign_threshold', type=int,
-            default=default_callsign_threshold,
-            help='Callsign & callsign CRC bit errors [default=%(default)r if '
-                 'callsign is unknown, 12 if callsign is known]')
+            default=None,
+            help='Callsign & callsign CRC bit errors [default='
+                 f'{DEFAULT_CALLSIGN_THRESHOLD} if callsign is unknown, '
+                 f'{DEFAULT_CALLSIGN_THRESHOLD_RELAXED} if callsign is known'
+                 ']')
         parser.add_argument(
             '--use_tnc_nx', type=bool,
             default=False,
