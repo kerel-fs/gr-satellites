@@ -17,7 +17,6 @@ from gnuradio.pdu import pdu_set
 
 from ...mobitex_to_datablocks import mobitex_to_datablocks
 from ...mobitex_fec_block import mobitex_fec
-from ...mobitex_scrambler import mobitex_scrambler_bb
 from ...tubix20_reframer import tubix20_reframer
 from ...hier.sync_to_pdu_packed import sync_to_pdu_packed
 from ...utils.options_block import options_block
@@ -155,7 +154,9 @@ class mobitex_deframer(gr.hier_block2, options_block):
             itemsize=1, rows=12,
             cols=20, deint=False,
         )
-        self.scrambler = mobitex_scrambler_bb()
+        self.scrambler = digital.additive_scrambler_bb(
+            0x22, 0x1ff, 9, count=0, bits_per_byte=1,
+            reset_tag_key='frame_header')
         self.pack = blocks.unpacked_to_packed_bb(1, gr.GR_MSB_FIRST)
         self.stream2pdu = tagged_stream_to_pdu(byte_t, 'packet_len')
 
