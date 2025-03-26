@@ -64,7 +64,7 @@ class mobitex_deframer(gr.hier_block2, options_block):
     """
     def __init__(self,
                  nx=False,
-                 variant=None,
+                 variant='default',
                  callsign=None,
                  callsign_threshold=None,
                  syncword_threshold=None,
