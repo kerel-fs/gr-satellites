@@ -21,6 +21,10 @@ from .mobitex_fec import decode, encode, Status
 
 def decode_control(control0: int, control1: int, fec: int) -> \
         tuple[list[int], int] | None:
+    """
+    Process control bytes and FEC byte, correcting errors if possible.
+    Returns error-corrected bytes and error count, or None if uncorrectable.
+    """
     # Error Correction of the control bytes
     control0, fec0, status0 = decode(
         (control0 << 4) | (fec >> 4)
@@ -42,6 +46,10 @@ def decode_control(control0: int, control1: int, fec: int) -> \
 
 
 def encode_control(control0: int, control1: int) -> int:
+    """
+    Generate FEC byte from pair of control bytes.
+    Returns computed FEC byte.
+    """
     fec0 = encode(control0) & 0xf
     fec1 = encode(control1) & 0xf
     fec = fec0 << 4 | fec1
