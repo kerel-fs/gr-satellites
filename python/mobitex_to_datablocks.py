@@ -206,6 +206,7 @@ class mobitex_to_datablocks(gr.basic_block):
         self.drop_invalid_control = drop_invalid_control
         self.callsign_ref = callsign.encode("ascii") if callsign else None
         self.callsign_threshold = callsign_threshold
+        self.frame_counter = 0
 
         if variant == 'BEESAT-1':
             self.parse_callsign = False
@@ -238,6 +239,7 @@ class mobitex_to_datablocks(gr.basic_block):
         self.message_port_register_out(pmt.intern("out"))
 
     def handle_msg(self, msg_pmt):
+        self.frame_counter += 1
         msg = pmt.cdr(msg_pmt)
         if not pmt.is_u8vector(msg):
             print("[ERROR] Received invalid message type. Expected u8vector")
@@ -320,6 +322,8 @@ class mobitex_to_datablocks(gr.basic_block):
 
         blocks = (data_blocks[a:a + self.block_size]
                   for a in range(0, len(data_blocks), self.block_size))
+
+        print(f'Frame {self.frame_counter}, {num_blocks} blocks.')
 
         for block_idx, block in enumerate(blocks):
             if block_idx == 0:
