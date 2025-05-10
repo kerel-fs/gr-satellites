@@ -34,6 +34,11 @@ DEFAULT_CALLSIGN_THRESHOLD = 2
 DEFAULT_CALLSIGN_THRESHOLD_RELAXED = 12
 
 
+USE_DEBUG_SINK = False
+USE_DEBUG_SOURCE = False
+SYMBOLS_FILENAME = '/tmp/symbols.bin'
+
+
 class mobitex_deframer(gr.hier_block2, options_block):
     """
     Hierarchical block to deframe Mobitex and Mobitex-NX
@@ -109,6 +114,9 @@ class mobitex_deframer(gr.hier_block2, options_block):
         else:
             self.setup_builtin_deframer()
 
+        if USE_DEBUG_SINK:
+            self.setup_debug_sink()
+
     def setup_external_deframer(self):
         if self.variant == 'BEESAT-1':
             raise ValueError('gr-tnc_nx does not support BEESAT-1')
@@ -168,7 +176,10 @@ class mobitex_deframer(gr.hier_block2, options_block):
         self.reframer = tubix20_reframer()
 
         # Setup connections
-        self.connect(self, self.invert, self.slicer, self.sync2pdu)
+        if USE_DEBUG_SOURCE:
+            self.setup_debug_source()
+        else:
+            self.connect(self, self.invert, self.slicer, self.sync2pdu)
 
         self.msg_connect((self.sync2pdu, 'out'), (self.to_blocks, 'in'))
         self.msg_connect((self.to_blocks, 'out'), (self.pdu2stream, 'pdus'))
@@ -191,6 +202,20 @@ class mobitex_deframer(gr.hier_block2, options_block):
         self.msg_connect((self.crc_fail, 'pdus'), (self.reframer, 'in'))
 
         self.msg_connect((self.reframer, 'out'), (self, 'out'))
+
+    def setup_debug_sink(self):
+        self.debug_sink = blocks.file_sink(gr.sizeof_char, SYMBOLS_FILENAME, False)
+        self.debug_sink.set_unbuffered(False)
+        self.connect(self, self.invert, self.slicer, self.debug_sink)
+
+    def setup_debug_source(self):
+        # Send input to null sink
+        self.null_sink = blocks.null_sink(gr.sizeof_float)
+        self.connect(self, self.null_sink)
+
+        # Read alternative debug input with file source
+        self.debug_source = blocks.file_source(gr.sizeof_char, SYMBOLS_FILENAME, False, 0, 0)
+        self.connect(self.debug_source, self.sync2pdu)
 
     @classmethod
     def add_options(cls, parser):
